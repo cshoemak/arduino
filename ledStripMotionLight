@@ -1,0 +1,60 @@
+#define MOSFET 9
+#define MAX_BRIGHTNESS 100
+
+#define PIR_PIN 2
+
+int brightness = 0;
+int prevState = LOW;
+int curState = LOW;
+unsigned long previousTimePir = millis();
+long timeIntervalPirCheck = 100;
+
+unsigned long previousTimeMotion = millis();
+long timeIntervaloNoMotion = 60000;
+
+unsigned long previousTimeFade = millis();
+long timeIntervalFade = 80;
+
+int LIGHT = 0;
+int DARK = 1;
+int mode = DARK;
+
+void setup() {
+  // put your setup code here, to run once:
+  pinMode(MOSFET, OUTPUT);
+
+  pinMode(PIR_PIN, INPUT);
+  Serial.begin(9600); 
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+  unsigned long currentTime = millis();
+
+  if (currentTime - previousTimePir > timeIntervalPirCheck) {
+    curState = digitalRead(PIR_PIN);
+    if (HIGH == curState) {
+      previousTimeMotion = currentTime;
+      if (HIGH == curState && prevState == LOW) {
+        // Motion detected. Turn it up.
+        mode = LIGHT;
+      }
+    } else {
+      if (currentTime - previousTimeMotion > timeIntervaloNoMotion) {
+        mode = DARK;
+      }
+    }
+    previousTimePir = currentTime;
+  }
+
+  if (currentTime - previousTimeFade > timeIntervalFade) {
+    if (LIGHT == mode && brightness < MAX_BRIGHTNESS) {
+      brightness += 1;
+      analogWrite(MOSFET, brightness);
+    } else if (DARK == mode && brightness > 0) {
+      brightness -= 1;
+      analogWrite(MOSFET, brightness);
+    }
+    previousTimeFade = currentTime;
+  }
+}
